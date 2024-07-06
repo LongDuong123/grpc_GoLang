@@ -1,10 +1,10 @@
 package domain
 
 type Order struct {
-	UserID         int
-	BookID         []int64
-	AmountRequired []int64
-	Total          int64
+	UserID         int     `json:"Id"`
+	BookID         []int64 `json:"Bookid"`
+	AmountRequired []int64 `json:"AmountRequired"`
+	Total          int64   `json:"Total"`
 }
 
 type OrderRepository interface {

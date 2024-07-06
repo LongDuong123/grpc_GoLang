@@ -2,29 +2,31 @@ package main
 
 import (
 	controllers "grpc_project/Services/ServiceBooks/Api/Controllers"
-	usecase "grpc_project/Services/ServiceBooks/Application/UseCase"
+	routes "grpc_project/Services/ServiceBooks/Api/Routes"
 	"grpc_project/Services/ServiceBooks/Application/proto"
-	infrastructure "grpc_project/Services/ServiceBooks/Infrastructure"
+	"grpc_project/Services/ServiceBooks/config"
 	"log"
-	"net"
+	"net/http"
 
+	"github.com/gorilla/mux"
 	"google.golang.org/grpc"
 )
 
 func main() {
-	lis, err := net.Listen("tcp", ":8080")
+	Init, err := config.InitServer()
 	if err != nil {
-		log.Fatalf("Failed to start the server %v", err)
+		log.Fatal("Fail Connect Server", err)
+		return
 	}
-	database, err := infrastructure.ConnectDatabase()
-	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
-	}
-	Repository := infrastructure.NewRepositoryBook(database)
-	UseCase := usecase.NewBookInteractor(Repository)
-	grpcServer := grpc.NewServer()
-	proto.RegisterBookServiceServer(grpcServer, &controllers.BookServer{BookUseCase: UseCase})
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalf("Failed to start: %v", err)
-	}
+	go func() {
+		grpcServer := grpc.NewServer()
+		proto.RegisterBookServiceServer(grpcServer, &controllers.BookServer{BookUseCase: Init.UseCaseBook})
+		if err := grpcServer.Serve(Init.Li); err != nil {
+			log.Fatal("Fail Server", err)
+		}
+	}()
+	r := mux.NewRouter()
+	routes.RegisterRouterBooks(r, Init.UseCaseBook)
+	http.Handle("/", r)
+	http.ListenAndServe(":8084", (r))
 }

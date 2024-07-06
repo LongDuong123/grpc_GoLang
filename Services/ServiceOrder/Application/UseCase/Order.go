@@ -7,12 +7,13 @@ import (
 )
 
 type OrderInteractor struct {
-	BookRepository domain.BookRepository
-	Email          rabbitmqUseCase.SendEmail
+	BookRepository  domain.BookRepository
+	Email           rabbitmqUseCase.SendEmail
+	OrderRepository domain.OrderRepository
 }
 
-func NewOrderInteractor(br domain.BookRepository, rb rabbitmqUseCase.SendEmail) domain.OrderInteractor {
-	return &OrderInteractor{BookRepository: br, Email: rb}
+func NewOrderInteractor(br domain.BookRepository, rb rabbitmqUseCase.SendEmail, or domain.OrderRepository) domain.OrderInteractor {
+	return &OrderInteractor{BookRepository: br, Email: rb, OrderRepository: or}
 }
 
 func (orderUseCase *OrderInteractor) CreateOrder(order *domain.Order) (*domain.Order, error) {
@@ -36,6 +37,10 @@ func (orderUseCase *OrderInteractor) CreateOrder(order *domain.Order) (*domain.O
 		}
 		return nil
 	}()
+	err = orderUseCase.OrderRepository.SaveOrder(order)
+	if err != nil {
+		return nil, err
+	}
 	err = orderUseCase.Email.Publish([]byte("Order successful"))
 	if err != nil {
 		return nil, err
